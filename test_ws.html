@@ -1,0 +1,68 @@
+<<<<<<< HEAD
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>WebSocket Test</h1>
+
+<button onclick="sendMessage()">
+    Send Test Message
+    
+</button>
+
+<script>
+
+const ws = new WebSocket(
+    "ws://localhost:8000/ws/demo"
+)
+
+ws.onopen = () => {
+    console.log("Connected")
+}
+
+ws.onmessage = (event) => {
+    console.log("Received:", event.data)
+}
+
+function sendMessage() {
+    ws.send("hello")
+}
+
+</script>
+
+</body>
+=======
+<!DOCTYPE html>
+<html>
+<body>
+
+<h1>WebSocket Test</h1>
+
+<button onclick="sendMessage()">
+    Send Test Message
+    
+</button>
+
+<script>
+
+const ws = new WebSocket(
+    "ws://localhost:8000/ws/demo"
+)
+
+ws.onopen = () => {
+    console.log("Connected")
+}
+
+ws.onmessage = (event) => {
+    console.log("Received:", event.data)
+}
+
+function sendMessage() {
+    ws.send("hello")
+}
+
+</script>
+
+</body>
+>>>>>>> 79ab74592d30a5c37d7f9888e74a50c945c44d84
+</html>
