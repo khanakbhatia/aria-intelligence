@@ -35,6 +35,7 @@ import {
   LineChart,
 } from "lucide-react";
 import { detectMode, type Mode } from "@/components/aria/ChatWidget";
+import { analyzeSentimentVader } from "@/lib/sentiment";
 
 export const Route = createFileRoute("/")({
   component: Index,
@@ -429,6 +430,8 @@ function WowMoment() {
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
   const [sessionId] = useState(() => "session-" + Math.random().toString(36).substring(2, 11));
 
+  const [vaderScore, setVaderScore] = useState<number | null>(null);
+
   const [intel, setIntel] = useState<{
     mode: Mode;
     sentiment_score: number;
@@ -454,6 +457,11 @@ function WowMoment() {
     if (!t) return;
     setInput("");
     setErrorMessage(null);
+    
+    // Compute client-side VADER sentiment score
+    const score = analyzeSentimentVader(t);
+    setVaderScore(score);
+
     setMessages((m) => [...m, { role: "user", text: t }]);
     setThinking(true);
     
@@ -671,6 +679,7 @@ function WowMoment() {
             <DecisionPanel steps={[
               `Detected intent: ${mode}`,
               `Sentiment score: ${intel.sentiment_score.toFixed(2)}`,
+              `Client-side VADER Sentiment Score: ${vaderScore !== null ? vaderScore.toFixed(2) : "0.80 (baseline)"}`,
               intel.mode_reason,
             ]} />
           </div>

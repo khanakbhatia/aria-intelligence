@@ -29,9 +29,16 @@ async def get_dashboard_stats():
     
     try:
         # Fetch from Supabase
-        conv_resp = supabase.table("conversations").select("*, customer_profiles(name)").execute()
+        conv_resp = supabase.table("conversations").select("*").execute()
         if conv_resp.data:
+            # Fetch profiles to map names
+            profiles_resp = supabase.table("customer_profiles").select("id, name").execute()
+            profiles_map = {p["id"]: p["name"] for p in profiles_resp.data} if profiles_resp.data else {}
+            
             db_conversations = conv_resp.data
+            for c in db_conversations:
+                # Add nested profile structure to match expected format
+                c["customer_profiles"] = {"name": profiles_map.get(c.get("customer_id"), "Anonymous User")}
             db_success = True
     except Exception as e:
         print(f"Supabase dashboard select failed: {e}")
@@ -146,17 +153,20 @@ async def get_conversations(limit: int = 10, status: Optional[str] = None):
     formatted = []
     
     try:
-        query = supabase.table("conversations").select("*, customer_profiles(name)").order("started_at", desc=True)
+        query = supabase.table("conversations").select("*")
         if status:
             query = query.eq("status", status.lower())
-        query = query.limit(limit)
+        query = query.order("started_at", desc=True).limit(limit)
         resp = query.execute()
         
         if resp.data:
+            # Fetch profiles to map names
+            profiles_resp = supabase.table("customer_profiles").select("id, name").execute()
+            profiles_map = {p["id"]: p["name"] for p in profiles_resp.data} if profiles_resp.data else {}
+            
             db_success = True
             for c in resp.data:
-                profile = c.get("customer_profiles") or {}
-                cust_name = profile.get("name") or "Anonymous User"
+                cust_name = profiles_map.get(c.get("customer_id"), "Anonymous User")
                 
                 duration = "1m 30s"
                 started_str = c.get("started_at") or c.get("created_at")
@@ -312,13 +322,22 @@ async def get_all_escalations():
     formatted = []
     
     try:
-        resp = supabase.table("escalations").select("*, conversations(*)").order("created_at", desc=True).execute()
+        resp = supabase.table("escalations").select("*").order("created_at", desc=True).execute()
         if resp.data:
+            # Fetch conversations to get customer_id and mode
+            convs_resp = supabase.table("conversations").select("id, customer_id, aria_mode").execute()
+            convs_map = {c["id"]: c for c in convs_resp.data} if convs_resp.data else {}
+            
+            # Fetch profiles to get name
+            profiles_resp = supabase.table("customer_profiles").select("id, name").execute()
+            profiles_map = {p["id"]: p["name"] for p in profiles_resp.data} if profiles_resp.data else {}
+            
             db_success = True
             for esc in resp.data:
-                conv = esc.get("conversations") or {}
-                # Join with customer_profile name
-                cust_name = "Marcus Reilly"
+                conv = convs_map.get(esc["conversation_id"]) or {}
+                cust_id = conv.get("customer_id")
+                cust_name = profiles_map.get(cust_id, "Anonymous User")
+                
                 formatted.append({
                     "id": esc["id"],
                     "conversation_id": esc["conversation_id"],
@@ -331,7 +350,11 @@ async def get_all_escalations():
                     "escalation_score": esc.get("escalation_score", 0.75),
                     "status": esc.get("status", "pending"),
                     "created_at": esc.get("created_at"),
-                    "conversation": conv
+                    "conversation": {
+                        "id": esc["conversation_id"],
+                        "customer_name": cust_name,
+                        "mode": conv.get("aria_mode", "support")
+                    }
                 })
     except Exception as e:
         print(f"Supabase escalations select failed: {e}")

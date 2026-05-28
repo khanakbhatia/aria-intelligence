@@ -466,9 +466,9 @@ async def seed_demo_data():
 
         db_seeded = 0
         try:
-            # Check if database is empty
-            existing = supabase.table("conversations").select("id", count="exact").execute()
-            if (existing.count or 0) == 0:
+            # Check if Marcus Reilly conversation is present to trigger seed
+            existing = supabase.table("conversations").select("id").eq("id", "33333333-3333-3333-3333-333333333333").execute()
+            if not existing.data:
                 print("Seeding Supabase DB...")
                 # Insert customer profiles
                 for p in seed_profiles:
